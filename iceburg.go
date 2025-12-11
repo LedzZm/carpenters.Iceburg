@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 )
@@ -23,7 +27,8 @@ type AURResponse struct {
 }
 
 type Config struct {
-	Type string
+	Type    string
+	Package string
 }
 
 // TODO: Error handling in all _ .
@@ -35,15 +40,45 @@ func main() {
 	configFilePath := "./packages.yml"
 	configData, _ := os.ReadFile(configFilePath)
 	// TODO: DEFER CLOSE see todowner
-	// Unmarshal YAML into a map where each key (a, b, etc.) points to a Config
+
+	// TODO: Does this need to be a map?
 	var configMap map[string]Config
 	yaml.Unmarshal(configData, &configMap)
 
-	// Print the unmarshalled data
-	for key, cfg := range configMap {
-		fmt.Printf("Key: %s\n", key)
-		fmt.Printf("Config: %+v\n", cfg)
+	// TODO: Handle AUR?
+	// TODO: Handle custom?
+	pacmanPackages := make(map[string]Config)
+	var pacmanKeys []string
+	// Split packages by type
+	for packageKey, cfg := range configMap {
+		switch cfg.Type {
+		case "pacman":
+			// If a package key is specified use it.
+			// Otherwise default to the yaml key.
+			_packageKey := packageKey
+			if cfg.Package != "" {
+				_packageKey = cfg.Package
+			}
+
+			// TODO: This is a temporary skip for dev speed, remove this.
+			if cfg.Package == "cachyos-gaming-meta" {
+				continue
+			}
+
+			pacmanKeys = append(pacmanKeys, _packageKey)
+			// TODO: Is this even needed??
+			pacmanPackages[packageKey] = cfg
+
+		default:
+			fmt.Printf("Unknown type for package %s: %s\n", packageKey, cfg.Type)
+		}
+
 	}
+
+	// TODO: Stream buffer while executing.
+	command := exec.Command("sudo", append([]string{"pacman", "-S", "--noconfirm"}, pacmanKeys...)...)
+	out, err := command.CombinedOutput()
+	fmt.Println(string(out), err)
 
 	os.Exit(1)
 	packageName := "discord-canary"
