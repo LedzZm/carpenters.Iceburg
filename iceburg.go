@@ -1,15 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/goccy/go-yaml"
 )
@@ -76,6 +73,7 @@ func main() {
 	}
 
 	// TODO: Stream buffer while executing.
+	// TODO: smth like 2>/dev/tty
 	command := exec.Command("sudo", append([]string{"pacman", "-S", "--noconfirm"}, pacmanKeys...)...)
 	out, err := command.CombinedOutput()
 	fmt.Println(string(out), err)
